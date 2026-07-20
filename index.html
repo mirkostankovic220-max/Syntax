@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Copilot Chat Replica</title>
+  <style>
+    :root {
+      --bg-dark: #0d1117;
+      --bg-card: #161b22;
+      --border-color: #30363d;
+      --text-main: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent-blue: #58a6ff;
+      --copilot-purple: #bc8cff;
+      --user-msg-bg: #21262d;
+      --bot-msg-bg: #161b22;
+      --code-bg: #010409;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 750px;
+      height: 90vh;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+
+    /* Header */
+    .chat-header {
+      padding: 14px 20px;
+      background-color: var(--bg-dark);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .copilot-icon {
+      color: var(--copilot-purple);
+      display: flex;
+      align-items: center;
+    }
+
+    .chat-header h2 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .chat-header span {
+      font-size: 12px;
+      color: var(--text-muted);
+      background-color: var(--border-color);
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    /* Messages Area */
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message-wrapper {
+      display: flex;
+      gap: 12px;
+      max-width: 85%;
+    }
+
+    .message-wrapper.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-wrapper.bot {
+      align-self: flex-start;
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .user .avatar {
+      background-color: var(--accent-blue);
+      color: #fff;
+    }
+
+    .bot .avatar {
+      background-color: var(--copilot-purple);
+      color: #fff;
+    }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      border: 1px solid var(--border-color);
+    }
+
+    .user .bubble {
+      background-color: var(--user-msg-bg);
+    }
+
+    .bot .bubble {
+      background-color: var(--bot-msg-bg);
+    }
+
+    /* Code Block Formatting */
+    pre {
+      background-color: var(--code-bg);
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      color: #e6edf3;
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+
+    /* Typing Indicator */
+    .typing-dots span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: var(--text-muted);
+      border-radius: 50%;
+      margin: 0 2px;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    /* Input Controls */
+    .chat-input-container {
+      padding: 16px;
+      background-color: var(--bg-dark);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-box-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+
+    .input-box-wrapper:focus-within {
+      border-color: var(--accent-blue);
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 14px;
+      resize: none;
+      max-height: 120px;
+      min-height: 24px;
+    }
+
+    button {
+      background-color: #238636;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: #2ea043;
+    }
+
+    .quick-commands {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 8px;
+    }
+
+    .chip {
+      background-color: var(--user-msg-bg);
+      border: 1px solid var(--border-color);
+      padding: 2px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .chip:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="copilot-icon">
+        <svg height="20" viewBox="0 0 16 16" width="20" fill="currentColor">
+          <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0ZM1.5 8a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0Z"></path>
+        </svg>
+      </div>
+      <h2>GitHub Copilot</h2>
+      <span>Offline Preview</span>
+    </div>
+
+    <div class="chat-messages" id="messages">
+      <div class="message-wrapper bot">
+        <div class="avatar">🤖</div>
+        <div class="bubble">
+          Hello! I am a simulated GitHub Copilot assistant. You can ask me questions or use quick commands like <code>/explain</code>, <code>/fix</code>, or <code>/clear</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-container">
+      <div class="quick-commands">
+        <span>Try:</span>
+        <span class="chip" onclick="insertCommand('/explain ')">/explain</span>
+        <span class="chip" onclick="insertCommand('/fix ')">/fix</span>
+        <span class="chip" onclick="insertCommand('/clear')">/clear</span>
+      </div>
+
+      <div class="input-box-wrapper">
+        <textarea id="userInput" placeholder="Ask Copilot or type '/' for commands..." rows="1"></textarea>
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const messagesContainer = document.getElementById('messages');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // Rule-based replies for demo mode (no real AI)
+    const mockResponses = {
+      default: "Here's a standard pattern for that in JavaScript:\n\n<pre><code>function handleRequest(data) {\n  console.log('Processing:', data);\n  return { success: true };\n}</code></pre>",
+      explain: "This function handles incoming data and logs it. It returns a simple status object indicating success.",
+      fix: "I analyzed your code snippet and resolved potential null issues:\n\n<pre><code>if (data && typeof data === 'object') {\n  // Processing logic safely\n}</code></pre>",
+      hello: "Hey there! How can I help you write or debug code today?"
+    };
+
+    function autoResize() {
+      userInput.style.height = 'auto';
+      userInput.style.height = userInput.scrollHeight + 'px';
+    }
+
+    userInput.addEventListener('input', autoResize);
+
+    function insertCommand(cmd) {
+      if (cmd === '/clear') {
+        clearChat();
+        return;
+      }
+      userInput.value = cmd;
+      userInput.focus();
+    }
+
+    function clearChat() {
+      messagesContainer.innerHTML = '';
+      appendMessage('bot', 'Chat history cleared.');
+    }
+
+    function appendMessage(sender, htmlContent) {
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('message-wrapper', sender);
+
+      const avatar = document.createElement('div');
+      avatar.classList.add('avatar');
+      avatar.textContent = sender === 'user' ? 'U' : '🤖';
+
+      const bubble = document.createElement('div');
+      bubble.classList.add('bubble');
+      bubble.innerHTML = htmlContent;
+
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(bubble);
+      messagesContainer.appendChild(wrapper);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('message-wrapper', 'bot');
+      wrapper.id = 'typingIndicator';
+
+      wrapper.innerHTML = `
+        <div class="avatar">🤖</div>
+        <div class="bubble typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      `;
+      messagesContainer.appendChild(wrapper);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+      const indicator = document.getElementById('typingIndicator');
+      if (indicator) indicator.remove();
+    }
+
+    function processMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      appendMessage('user', text);
+      userInput.value = '';
+      userInput.style.height = 'auto';
+
+      if (text.startsWith('/clear')) {
+        clearChat();
+        return;
+      }
+
+      showTypingIndicator();
+
+      setTimeout(() => {
+        removeTypingIndicator();
+        
+        let response = mockResponses.default;
+        const lower = text.toLowerCase();
+
+        if (lower.startsWith('/explain')) response = mockResponses.explain;
+        else if (lower.startsWith('/fix')) response = mockResponses.fix;
+        else if (lower.includes('hello') || lower.includes('hi')) response = mockResponses.hello;
+
+        appendMessage('bot', response);
+      }, 1000);
+    }
+
+    sendBtn.addEventListener('click', processMessage);
+
+    userInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        processMessage();
+      }
+    });
+  </script>
+</body>
+</html>
