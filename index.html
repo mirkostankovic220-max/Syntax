@@ -37,14 +37,20 @@
     .chat-container {
       width: 100%;
       max-width: 800px;
-      height: 90vh;
+      height: 100vh;
       background-color: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 8px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
       box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+
+    @media (min-width: 768px) {
+      .chat-container {
+        height: 90vh;
+        border-radius: 8px;
+      }
     }
 
     /* Header */
@@ -234,6 +240,9 @@
       color: var(--text-muted);
       display: flex;
       gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 4px;
     }
 
     .chip {
@@ -336,14 +345,13 @@
     <!-- Input Footer -->
     <div class="chat-input-container">
       <div class="quick-commands">
-        <span>Quick commands:</span>
         <span class="chip" onclick="insertCommand('/explain ')">/explain</span>
         <span class="chip" onclick="insertCommand('/fix ')">/fix</span>
         <span class="chip" onclick="insertCommand('/clear')">/clear</span>
       </div>
 
       <div class="input-box-wrapper">
-        <textarea id="userInput" placeholder="Ask Syntax or type '/' for commands..." rows="1"></textarea>
+        <textarea id="userInput" placeholder="Ask Syntax or type '/'..." rows="1"></textarea>
         <button id="sendBtn">Send</button>
       </div>
     </div>
@@ -410,6 +418,15 @@
       appendMessage('bot', 'Chat history cleared.');
     }
 
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     function appendMessage(sender, text) {
       const wrapper = document.createElement('div');
       wrapper.classList.add('message-wrapper', sender);
@@ -421,9 +438,12 @@
       const bubble = document.createElement('div');
       bubble.classList.add('bubble');
 
-      // Basic Markdown code block rendering logic
+      // Basic Markdown code block rendering logic with HTML escaping
       if (text.includes('```')) {
-        bubble.innerHTML = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+        let formattedText = text.replace(/```([\s\S]*?)```/g, function(match, code) {
+            return '<pre><code>' + escapeHtml(code.trim()) + '</code></pre>';
+        });
+        bubble.innerHTML = formattedText;
       } else {
         bubble.textContent = text;
       }
@@ -463,20 +483,15 @@
       conversationHistory.push({ role: "user", content: userPrompt });
 
       try {
-        // Clean the API key to prevent hidden newline/space errors
-        const cleanApiKey = CONFIG.OPENROUTER_API_KEY.trim();
-        
-        // Provide a safe fallback for local 'file://' testing
-        const safeReferer = window.location.href.startsWith('http') 
-          ? window.location.href 
-          : "[https://syntax-ai.local](https://syntax-ai.local)";
+        // Strip all invisible characters to prevent string pattern errors
+        const cleanApiKey = CONFIG.OPENROUTER_API_KEY.replace(/[\r\n\s]+/g, '');
 
         const response = await fetch("[https://openrouter.ai/api/v1/chat/completions](https://openrouter.ai/api/v1/chat/completions)", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${cleanApiKey}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": safeReferer,
+            "HTTP-Referer": "[https://github.com/syntax-ai](https://github.com/syntax-ai)",
             "X-Title": "Syntax AI"
           },
           body: JSON.stringify({
@@ -484,6 +499,13 @@
             messages: conversationHistory
           })
         });
+
+        // SAFETY NET: Catch HTML error pages if OpenRouter blocks the request
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("OpenRouter Error HTML:", errorText);
+          return `⚠️ Connection Blocked (Status ${response.status}). Check developer console for details.`;
+        }
 
         const data = await response.json();
 
