@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitHub Copilot Chat Replica</title>
+  <title>Syntax AI - GitHub Chatbot Replica</title>
   <style>
     :root {
       --bg-dark: #0d1117;
@@ -12,7 +12,7 @@
       --text-main: #c9d1d9;
       --text-muted: #8b949e;
       --accent-blue: #58a6ff;
-      --copilot-purple: #bc8cff;
+      --syntax-purple: #bc8cff;
       --user-msg-bg: #21262d;
       --bot-msg-bg: #161b22;
       --code-bg: #010409;
@@ -36,7 +36,7 @@
 
     .chat-container {
       width: 100%;
-      max-width: 750px;
+      max-width: 800px;
       height: 90vh;
       background-color: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -49,31 +49,76 @@
 
     /* Header */
     .chat-header {
-      padding: 14px 20px;
+      padding: 12px 20px;
       background-color: var(--bg-dark);
       border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .brand {
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .copilot-icon {
-      color: var(--copilot-purple);
+    .brand-icon {
+      color: var(--syntax-purple);
       display: flex;
       align-items: center;
     }
 
-    .chat-header h2 {
-      font-size: 15px;
+    .brand h2 {
+      font-size: 16px;
       font-weight: 600;
     }
 
-    .chat-header span {
+    /* Model Selector Dropdown */
+    .model-selector-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    select.model-select {
+      background-color: var(--user-msg-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    select.model-select:focus {
+      border-color: var(--accent-blue);
+    }
+
+    /* Model Description Bar */
+    .model-desc-bar {
+      background-color: #0d111780;
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 20px;
       font-size: 12px;
       color: var(--text-muted);
-      background-color: var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 11px;
       padding: 2px 6px;
       border-radius: 10px;
+      background-color: var(--user-msg-bg);
+      border: 1px solid var(--border-color);
+      color: var(--syntax-purple);
+      font-weight: 600;
     }
 
     /* Messages Area */
@@ -89,7 +134,7 @@
     .message-wrapper {
       display: flex;
       gap: 12px;
-      max-width: 85%;
+      max-width: 88%;
     }
 
     .message-wrapper.user {
@@ -119,7 +164,7 @@
     }
 
     .bot .avatar {
-      background-color: var(--copilot-purple);
+      background-color: var(--syntax-purple);
       color: #fff;
     }
 
@@ -129,6 +174,8 @@
       font-size: 14px;
       line-height: 1.5;
       border: 1px solid var(--border-color);
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     .user .bubble {
@@ -139,10 +186,10 @@
       background-color: var(--bot-msg-bg);
     }
 
-    /* Code Block Formatting */
+    /* Code Blocks */
     pre {
       background-color: var(--code-bg);
-      padding: 10px 12px;
+      padding: 12px;
       border-radius: 6px;
       border: 1px solid var(--border-color);
       font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -150,9 +197,10 @@
       color: #e6edf3;
       overflow-x: auto;
       margin-top: 8px;
+      margin-bottom: 8px;
     }
 
-    /* Typing Indicator */
+    /* Typing Dots */
     .typing-dots span {
       display: inline-block;
       width: 6px;
@@ -171,7 +219,7 @@
       40% { transform: scale(1); }
     }
 
-    /* Input Controls */
+    /* Input Footer */
     .chat-input-container {
       padding: 16px;
       background-color: var(--bg-dark);
@@ -179,6 +227,26 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+    }
+
+    .quick-commands {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 8px;
+    }
+
+    .chip {
+      background-color: var(--user-msg-bg);
+      border: 1px solid var(--border-color);
+      padding: 2px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .chip:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
     }
 
     .input-box-wrapper {
@@ -211,7 +279,7 @@
       background-color: #238636;
       color: #fff;
       border: none;
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 6px;
       font-size: 13px;
       font-weight: 600;
@@ -223,83 +291,107 @@
       background-color: #2ea043;
     }
 
-    .quick-commands {
-      font-size: 12px;
+    button:disabled {
+      background-color: #21262d;
       color: var(--text-muted);
-      display: flex;
-      gap: 8px;
-    }
-
-    .chip {
-      background-color: var(--user-msg-bg);
-      border: 1px solid var(--border-color);
-      padding: 2px 8px;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-
-    .chip:hover {
-      border-color: var(--accent-blue);
-      color: var(--accent-blue);
+      cursor: not-allowed;
     }
   </style>
 </head>
 <body>
 
   <div class="chat-container">
+    <!-- Header -->
     <div class="chat-header">
-      <div class="copilot-icon">
-        <svg height="20" viewBox="0 0 16 16" width="20" fill="currentColor">
-          <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0ZM1.5 8a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0Z"></path>
-        </svg>
+      <div class="brand">
+        <div class="brand-icon">
+          <svg height="20" viewBox="0 0 16 16" width="20" fill="currentColor">
+            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0ZM1.5 8a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0Z"></path>
+          </svg>
+        </div>
+        <h2>Syntax AI</h2>
       </div>
-      <h2>GitHub Copilot</h2>
-      <span>Offline Preview</span>
+
+      <div class="model-selector-wrapper">
+        <select id="modelSelect" class="model-select"></select>
+      </div>
     </div>
 
+    <!-- Model Description Banner -->
+    <div class="model-desc-bar">
+      <span id="modelBadge" class="badge">Fast</span>
+      <span id="modelDescription">Loading model details...</span>
+    </div>
+
+    <!-- Message Scroll Area -->
     <div class="chat-messages" id="messages">
       <div class="message-wrapper bot">
-        <div class="avatar">🤖</div>
+        <div class="avatar">⚡</div>
         <div class="bubble">
-          Hello! I am a simulated GitHub Copilot assistant. You can ask me questions or use quick commands like <code>/explain</code>, <code>/fix</code>, or <code>/clear</code>.
+          Hello! I am <strong>Syntax AI</strong>. Select a model at the top and ask a question, or use commands like <code>/explain</code>, <code>/fix</code>, or <code>/clear</code>.
         </div>
       </div>
     </div>
 
+    <!-- Input Footer -->
     <div class="chat-input-container">
       <div class="quick-commands">
-        <span>Try:</span>
+        <span>Quick commands:</span>
         <span class="chip" onclick="insertCommand('/explain ')">/explain</span>
         <span class="chip" onclick="insertCommand('/fix ')">/fix</span>
         <span class="chip" onclick="insertCommand('/clear')">/clear</span>
       </div>
 
       <div class="input-box-wrapper">
-        <textarea id="userInput" placeholder="Ask Copilot or type '/' for commands..." rows="1"></textarea>
+        <textarea id="userInput" placeholder="Ask Syntax or type '/' for commands..." rows="1"></textarea>
         <button id="sendBtn">Send</button>
       </div>
     </div>
   </div>
 
+  <!-- Load Configuration File -->
+  <script src="config.js"></script>
+
   <script>
     const messagesContainer = document.getElementById('messages');
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
+    const modelSelect = document.getElementById('modelSelect');
+    const modelBadge = document.getElementById('modelBadge');
+    const modelDescription = document.getElementById('modelDescription');
 
-    // Rule-based replies for demo mode (no real AI)
-    const mockResponses = {
-      default: "Here's a standard pattern for that in JavaScript:\n\n<pre><code>function handleRequest(data) {\n  console.log('Processing:', data);\n  return { success: true };\n}</code></pre>",
-      explain: "This function handles incoming data and logs it. It returns a simple status object indicating success.",
-      fix: "I analyzed your code snippet and resolved potential null issues:\n\n<pre><code>if (data && typeof data === 'object') {\n  // Processing logic safely\n}</code></pre>",
-      hello: "Hey there! How can I help you write or debug code today?"
-    };
+    let conversationHistory = [
+      { role: "system", content: "You are Syntax AI, an expert programming assistant integrated into GitHub. Provide concise, clean code with brief explanations." }
+    ];
 
-    function autoResize() {
-      userInput.style.height = 'auto';
-      userInput.style.height = userInput.scrollHeight + 'px';
+    // Initialize Models in Selector
+    function initModelSelector() {
+      modelSelect.innerHTML = '';
+      for (const [key, modelObj] of Object.entries(CONFIG.MODELS)) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = modelObj.name;
+        modelSelect.appendChild(option);
+      }
+      updateModelInfo();
     }
 
-    userInput.addEventListener('input', autoResize);
+    function updateModelInfo() {
+      const selectedKey = modelSelect.value;
+      const activeModel = CONFIG.MODELS[selectedKey];
+      if (activeModel) {
+        modelBadge.textContent = activeModel.badge;
+        modelDescription.textContent = activeModel.description;
+      }
+    }
+
+    modelSelect.addEventListener('change', updateModelInfo);
+
+    // Auto-resize textarea
+    userInput.addEventListener('input', () => {
+      userInput.style.height = 'auto';
+      userInput.style.height = userInput.scrollHeight + 'px';
+    });
 
     function insertCommand(cmd) {
       if (cmd === '/clear') {
@@ -312,20 +404,29 @@
 
     function clearChat() {
       messagesContainer.innerHTML = '';
+      conversationHistory = [
+        { role: "system", content: "You are Syntax AI, an expert programming assistant integrated into GitHub." }
+      ];
       appendMessage('bot', 'Chat history cleared.');
     }
 
-    function appendMessage(sender, htmlContent) {
+    function appendMessage(sender, text) {
       const wrapper = document.createElement('div');
       wrapper.classList.add('message-wrapper', sender);
 
       const avatar = document.createElement('div');
       avatar.classList.add('avatar');
-      avatar.textContent = sender === 'user' ? 'U' : '🤖';
+      avatar.textContent = sender === 'user' ? 'U' : '⚡';
 
       const bubble = document.createElement('div');
       bubble.classList.add('bubble');
-      bubble.innerHTML = htmlContent;
+
+      // Basic Markdown code block rendering logic
+      if (text.includes('```')) {
+        bubble.innerHTML = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+      } else {
+        bubble.textContent = text;
+      }
 
       wrapper.appendChild(avatar);
       wrapper.appendChild(bubble);
@@ -337,9 +438,8 @@
       const wrapper = document.createElement('div');
       wrapper.classList.add('message-wrapper', 'bot');
       wrapper.id = 'typingIndicator';
-
       wrapper.innerHTML = `
-        <div class="avatar">🤖</div>
+        <div class="avatar">⚡</div>
         <div class="bubble typing-dots">
           <span></span><span></span><span></span>
         </div>
@@ -353,7 +453,47 @@
       if (indicator) indicator.remove();
     }
 
-    function processMessage() {
+    async function callOpenRouterAPI(userPrompt) {
+      const activeModel = CONFIG.MODELS[modelSelect.value];
+
+      if (!CONFIG.OPENROUTER_API_KEY || CONFIG.OPENROUTER_API_KEY.includes("YOUR_OPENROUTER_API_KEY")) {
+        return "⚠️ **OpenRouter API Key Missing:** Please add your key inside `config.js` to enable real AI responses.";
+      }
+
+      conversationHistory.push({ role: "user", content: userPrompt });
+
+      try {
+        const response = await fetch("[https://openrouter.ai/api/v1/chat/completions](https://openrouter.ai/api/v1/chat/completions)", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${CONFIG.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": window.location.href,
+            "X-Title": "Syntax AI"
+          },
+          body: JSON.stringify({
+            model: activeModel.modelId,
+            messages: conversationHistory
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.choices && data.choices.length > 0) {
+          const aiReply = data.choices[0].message.content;
+          conversationHistory.push({ role: "assistant", content: aiReply });
+          return aiReply;
+        } else if (data.error) {
+          return `API Error: ${data.error.message || 'Failed to fetch model response.'}`;
+        } else {
+          return "Unexpected response format from OpenRouter.";
+        }
+      } catch (err) {
+        return `Connection Error: ${err.message}`;
+      }
+    }
+
+    async function processMessage() {
       const text = userInput.value.trim();
       if (!text) return;
 
@@ -366,20 +506,14 @@
         return;
       }
 
+      sendBtn.disabled = true;
       showTypingIndicator();
 
-      setTimeout(() => {
-        removeTypingIndicator();
-        
-        let response = mockResponses.default;
-        const lower = text.toLowerCase();
+      const responseText = await callOpenRouterAPI(text);
 
-        if (lower.startsWith('/explain')) response = mockResponses.explain;
-        else if (lower.startsWith('/fix')) response = mockResponses.fix;
-        else if (lower.includes('hello') || lower.includes('hi')) response = mockResponses.hello;
-
-        appendMessage('bot', response);
-      }, 1000);
+      removeTypingIndicator();
+      appendMessage('bot', responseText);
+      sendBtn.disabled = false;
     }
 
     sendBtn.addEventListener('click', processMessage);
@@ -390,6 +524,9 @@
         processMessage();
       }
     });
+
+    // Initialize UI
+    initModelSelector();
   </script>
 </body>
 </html>
