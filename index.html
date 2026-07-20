@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Syntax AI - GitHub Chatbot Replica</title>
+  <title>Syntax AI - Developer Chatbot</title>
   <style>
     :root {
       --bg-dark: #0d1117;
@@ -463,12 +463,20 @@
       conversationHistory.push({ role: "user", content: userPrompt });
 
       try {
+        // Clean the API key to prevent hidden newline/space errors
+        const cleanApiKey = CONFIG.OPENROUTER_API_KEY.trim();
+        
+        // Provide a safe fallback for local 'file://' testing
+        const safeReferer = window.location.href.startsWith('http') 
+          ? window.location.href 
+          : "[https://syntax-ai.local](https://syntax-ai.local)";
+
         const response = await fetch("[https://openrouter.ai/api/v1/chat/completions](https://openrouter.ai/api/v1/chat/completions)", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${CONFIG.OPENROUTER_API_KEY}`,
+            "Authorization": `Bearer ${cleanApiKey}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": window.location.href,
+            "HTTP-Referer": safeReferer,
             "X-Title": "Syntax AI"
           },
           body: JSON.stringify({
